@@ -1,7 +1,10 @@
 """
-Shared helper functions - mainly date parsing, used by collectors and filters.
+Shared helper functions - date parsing, logging, and text cleanup,
+used by collectors, filters, and notifiers.
 """
 
+import re
+import html
 import logging
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
@@ -20,6 +23,35 @@ def get_logger(name):
     return logger
 
 
+# ---------- TEXT CLEANUP ----------
+
+_TAG_RE = re.compile(r"<[^>]+>")
+_WHITESPACE_RE = re.compile(r"\s+")
+
+
+def strip_html(text):
+    """Removes HTML tags and decodes entities (e.g. &amp; -> &).
+    Job description fields from several APIs come pre-formatted as HTML,
+    which looks messy when posted as plain text in Discord/Telegram/email."""
+    if not text:
+        return ""
+    text = html.unescape(text)
+    text = _TAG_RE.sub(" ", text)
+    text = _WHITESPACE_RE.sub(" ", text).strip()
+    return text
+
+
+def safe_join(value, separator=" "):
+    """Some APIs return a field as a list (e.g. tags, industries) and others
+    return it as a plain string. This normalizes either case to a single
+    string so it can be safely stored in the database."""
+    if value is None:
+        return ""
+    if isinstance(value, list):
+        return separator.join(str(v) for v in value)
+    return str(value)
+
+
 # ---------- DATE PARSING ----------
 
 def parse_date_safe(value):
@@ -28,7 +60,6 @@ def parse_date_safe(value):
         return None
     if isinstance(value, (int, float)):
         try:
-            # Handle both seconds and milliseconds epoch timestamps
             if value > 10_000_000_000:  # looks like milliseconds
                 value = value / 1000
             return datetime.fromtimestamp(value, tz=timezone.utc)
