@@ -1,7 +1,7 @@
 """WeWorkRemotely collector - parses public RSS feeds, no auth required."""
 
 import feedparser
-from utils import parse_date_safe, get_logger
+from utils import parse_date_safe, get_logger, strip_html
 
 logger = get_logger("collectors.weworkremotely")
 
@@ -25,9 +25,9 @@ def fetch_weworkremotely_jobs():
             jobs.append({
                 "id": f"wwr_{job_id}",
                 "title": entry.get("title", "Untitled role"),
-                "company": "",  # WWR titles are usually "Company: Role"
+                "company": "",
                 "url": entry.get("link", ""),
-                "description": (entry.get("summary") or "")[:800],
+                "description": strip_html((entry.get("summary") or "")[:800]),
                 "tags": "",
                 "location": "Remote",
                 "source": "WeWorkRemotely",
