@@ -3,7 +3,7 @@ Free public API, no auth required. EU/remote heavy."""
 
 import requests
 from config import REQUEST_HEADERS, MAX_PER_SOURCE
-from utils import parse_date_safe, get_logger
+from utils import parse_date_safe, get_logger, strip_html
 
 logger = get_logger("collectors.arbeitnow")
 
@@ -27,7 +27,7 @@ def fetch_arbeitnow_jobs():
             "title": item.get("title", "Untitled role"),
             "company": item.get("company_name", "Unknown company"),
             "url": item.get("url", ""),
-            "description": (item.get("description") or "")[:800],
+            "description": strip_html((item.get("description") or "")[:800]),
             "tags": " ".join(item.get("tags", [])),
             "location": item.get("location", "Remote"),
             "source": "Arbeitnow",
