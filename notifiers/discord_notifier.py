@@ -3,7 +3,7 @@
 import time
 import requests
 from config import DISCORD_WEBHOOK_URL
-from utils import get_logger
+from utils import get_logger, strip_html
 
 logger = get_logger("notifiers.discord")
 
@@ -13,16 +13,22 @@ def post_to_discord(job):
         logger.warning("No DISCORD_WEBHOOK_URL set - skipping Discord post.")
         return False
 
+    description = strip_html(job.get("description") or "")
+    if len(description) > 300:
+        description = description[:297].rstrip() + "..."
+    if not description:
+        description = "No description provided."
+
     embed = {
-        "title": job["title"][:256],
-        "url": job["url"],
-        "description": (job.get("description") or "No description provided.")[:400],
+        "title": (job.get("title") or "Untitled role")[:256],
+        "url": job.get("url") or None,
+        "description": description,
         "color": 5814783,
         "fields": [
             {"name": "Company", "value": job.get("company") or "See listing", "inline": True},
             {"name": "Location", "value": job.get("location") or "Unknown", "inline": True},
-            {"name": "Source", "value": job.get("source", "Unknown"), "inline": True},
-            {"name": "Level", "value": job.get("experience_level", "Unclear"), "inline": True},
+            {"name": "Source", "value": job.get("source") or "Unknown", "inline": True},
+            {"name": "Level", "value": job.get("experience_level") or "Unclear", "inline": True},
             {"name": "Score", "value": str(job.get("score", 0)), "inline": True},
         ],
         "footer": {"text": "Data Career Radar 🚨"},
@@ -41,4 +47,4 @@ def post_to_discord(job):
         logger.error(f"Discord post error: {e}")
         return False
     finally:
-        time.sleep(1)  # be nice to Discord rate limits
+        time.sleep(1)
