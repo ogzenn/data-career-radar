@@ -2,7 +2,7 @@
 
 import requests
 from config import REQUEST_HEADERS
-from utils import parse_date_safe, get_logger
+from utils import parse_date_safe, get_logger, strip_html, safe_join
 
 logger = get_logger("collectors.jobicy")
 
@@ -29,10 +29,11 @@ def fetch_jobicy_jobs():
                 "title": item.get("jobTitle", "Untitled role"),
                 "company": item.get("companyName", "Unknown company"),
                 "url": item.get("url", ""),
-                "description": (item.get("jobExcerpt") or "")[:800],
-                "tags": item.get("jobIndustry", ""),
-                "location": item.get("jobGeo", "Remote"),
+                "description": strip_html((item.get("jobExcerpt") or "")[:800]),
+                "tags": safe_join(item.get("jobIndustry")),
+                "location": safe_join(item.get("jobGeo", "Remote")) or "Remote",
                 "source": "Jobicy",
                 "posted_at": parse_date_safe(item.get("pubDate")),
             })
     return jobs
+              
