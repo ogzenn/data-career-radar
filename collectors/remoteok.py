@@ -2,7 +2,7 @@
 
 import requests
 from config import REQUEST_HEADERS, MAX_PER_SOURCE
-from utils import parse_date_safe, get_logger
+from utils import parse_date_safe, get_logger, strip_html
 
 logger = get_logger("collectors.remoteok")
 
@@ -21,13 +21,13 @@ def fetch_remoteok_jobs():
     jobs = []
     for item in data:
         if not isinstance(item, dict) or "id" not in item:
-            continue  # first element is often a metadata blob, skip it
+            continue
         jobs.append({
             "id": f"remoteok_{item.get('id')}",
             "title": item.get("position", "Untitled role"),
             "company": item.get("company", "Unknown company"),
             "url": item.get("url") or f"https://remoteok.com/remote-jobs/{item.get('id')}",
-            "description": (item.get("description") or "")[:800],
+            "description": strip_html((item.get("description") or "")[:800]),
             "tags": " ".join(item.get("tags", [])),
             "location": item.get("location", "Remote"),
             "source": "RemoteOK",
