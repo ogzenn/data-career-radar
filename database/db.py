@@ -7,7 +7,7 @@ import sqlite3
 import os
 from datetime import datetime, timezone
 from config import DATABASE_PATH
-from utils import get_logger, to_iso_string
+from utils import get_logger, to_iso_string, safe_join
 
 logger = get_logger("database.db")
 
@@ -21,7 +21,6 @@ def get_connection():
 
 
 def init_db():
-    """Creates the jobs table if it doesn't exist yet. Safe to call every run."""
     conn = get_connection()
     with open(SCHEMA_PATH, "r") as f:
         conn.executescript(f.read())
@@ -39,9 +38,6 @@ def is_seen(job_id):
 
 
 def insert_job(job):
-    """Inserts a job into the database. job must include: id, title, company,
-    description, tags, location, source, url, posted_at (datetime|None),
-    experience_level, score."""
     conn = get_connection()
     conn.execute(
         """
@@ -52,16 +48,16 @@ def insert_job(job):
         """,
         (
             job["id"],
-            job["title"],
-            job.get("company", ""),
-            job.get("description", ""),
-            job.get("tags", ""),
-            job.get("location", ""),
-            job.get("source", ""),
-            job.get("url", ""),
+            safe_join(job["title"]),
+            safe_join(job.get("company", "")),
+            safe_join(job.get("description", "")),
+            safe_join(job.get("tags", "")),
+            safe_join(job.get("location", "")),
+            safe_join(job.get("source", "")),
+            safe_join(job.get("url", "")),
             to_iso_string(job.get("posted_at")),
             datetime.now(timezone.utc).isoformat(),
-            job.get("experience_level", "Unclear"),
+            safe_join(job.get("experience_level", "Unclear")),
             job.get("score", 0),
         ),
     )
@@ -78,7 +74,6 @@ def mark_posted(job_id, channel="discord"):
 
 
 def get_stats():
-    """Returns basic aggregate stats for the dashboard."""
     conn = get_connection()
     total = conn.execute("SELECT COUNT(*) as c FROM jobs").fetchone()["c"]
     by_source = conn.execute(
